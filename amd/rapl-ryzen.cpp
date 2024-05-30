@@ -48,18 +48,18 @@ Rapl::Rapl() {
 	}
 
     int core_energy_units = read_msr(fd[0], AMD_MSR_PWR_UNIT);
-	printf("Core energy units: %x\n",core_energy_units);
+	//printf("Core energy units: %x\n",core_energy_units);
 	
 	time_unit = (core_energy_units & AMD_TIME_UNIT_MASK) >> 16;
 	energy_unit = (core_energy_units & AMD_ENERGY_UNIT_MASK) >> 8;
 	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
-	printf("Time_unit:%d, Energy_unit: %d, Power_unit: %d\n", time_unit, energy_unit, power_unit);
+	//printf("Time_unit:%d, Energy_unit: %d, Power_unit: %d\n", time_unit, energy_unit, power_unit);
 	
 	time_unit_d = pow(0.5,(double)(time_unit));
 	energy_unit_d = pow(0.5,(double)(energy_unit));
 	power_unit_d = pow(0.5,(double)(power_unit));
 
-	printf("Time_unit:%g, Energy_unit: %g, Power_unit: %g\n", time_unit_d, energy_unit_d, power_unit_d);
+	// printf("Time_unit:%g, Energy_unit: %g, Power_unit: %g\n", time_unit_d, energy_unit_d, power_unit_d);
 	reset();
 }
 
@@ -100,8 +100,7 @@ int Rapl::open_msr(int core) {
 			fprintf(stderr, "rdmsr: No CPU %d\n", core);
 			exit(2);
 		} else if ( errno == EIO ) {
-			fprintf(stderr, "rdmsr: CPU %d doesn't support MSRs\n",
-					core);
+			fprintf(stderr, "rdmsr: CPU %d doesn't support MSRs\n", core);
 			exit(3);
 		} else {
 			perror("rdmsr:open");
@@ -141,7 +140,7 @@ void Rapl::sample() {
 	gettimeofday(&(next_state->tsc), NULL);
 
 
-	running_total.pkg += energy_delta(current_state->pkg, next_state->pkg);
+	running_total.pkg += energy_delta_pkg(current_state->pkg, next_state->pkg);
 	running_total.pp0 += energy_delta(current_state->pp0, next_state->pp0);
 	
 	// Rotate states
@@ -161,14 +160,14 @@ int Rapl::detect_packages(void) {
 
 	for(i=0;i<MAX_PACKAGES;i++) package_map[i]=-1;
 
-	printf("\t");
+	//printf("\t");
 	for(i=0;i<MAX_CPUS;i++) {
 		sprintf(filename,"/sys/devices/system/cpu/cpu%d/topology/physical_package_id",i);
 		fff=fopen(filename,"r");
 		if (fff==NULL) break;
 		fscanf(fff,"%d",&package);
-		printf("%d (%d)",i,package);
-		if (i%8==7) printf("\n\t"); else printf(", ");
+		//printf("%d (%d)",i,package);
+		//if (i%8==7) printf("\n\t"); else printf(", ");
 		fclose(fff);
 
 		if (package_map[package]==-1) {
@@ -178,12 +177,11 @@ int Rapl::detect_packages(void) {
 
 	}
 
-	printf("\n");
+	//printf("\n");
 
 	total_cores=i;
 
-	printf("\tDetected %d cores in %d packages\n\n",
-		total_cores,total_packages);
+	//printf("\tDetected %d cores in %d packages\n\n", total_cores,total_packages);
 
 	return 0;
 }
@@ -251,4 +249,12 @@ uint64_t Rapl::energy_delta_pkg(uint64_t* before, uint64_t* after) {
 	}
     sum += tmp;
 	return sum;
+}
+
+double Rapl::pkg_total_energy() {
+	return energy_unit_d * ((double) running_total.pkg);
+}
+
+double Rapl::pp0_total_energy() {
+	return energy_unit_d * ((double) running_total.pp0);
 }

@@ -55,4 +55,7 @@ class Rapl {
 
 		double pkg_current_power();
 		double pp0_current_power();
+
+		double pkg_total_energy();
+		double pp0_total_energy();
 };

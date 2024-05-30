@@ -10,7 +10,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
 
 	// Default settings
-	int runtime = 60;         // run for 60 seconds	
+	int runtime = 5;         // run for 60 seconds	
 	int ms_pause = 100;       // sample every 100ms
 	bool use_outfile = false; // no output file
 	ofstream outfile;
@@ -61,15 +61,16 @@ int main(int argc, char *argv[]) {
 				<< "CPU cores sum="<< rapl->pp0_current_power() << "W"
 				<< "\tPKG=" << rapl->pkg_current_power() << "W"
 				<< "\tTime=" << rapl->current_time()
-				<< "\tAllTime=" << rapl->total_time();
+				<< "\tAllTime=" << rapl->total_time() << endl;
 		cout.flush();
 	}
 
-	// Print totals
-	// cout << endl 
-	// 	<< "\tTotal Energy:\t" << rapl->pkg_total_energy() << " W" << endl
-	// 	<< "\tAverage Power:\t" << rapl->pkg_average_power() << " W" << endl
-	// 	<< "\tTime:\t" << rapl->total_time() << " sec" << endl;
+	//Print totals
+	cout << "TOTAL:" << endl;
+	cout << endl 
+		<< "\tTotal Energy:\t" << rapl->pkg_total_energy() << " W" << endl
+	//	<< "\tAverage Power:\t" << rapl->pkg_average_power() << " W" << endl
+		<< "\tTime:\t" << rapl->total_time() << " sec" << endl;
 
 	return 0;
 }
