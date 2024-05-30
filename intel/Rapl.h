@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <cstdint>
+#include <sys/time.h>
 
 #ifndef RAPL_H_
 #define RAPL_H_
