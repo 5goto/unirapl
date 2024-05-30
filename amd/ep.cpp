@@ -27,9 +27,11 @@ struct csv_table_row {
 
 auto run_experiment(auto load_fn) {
 	csv_table_row r;
+	//Rapl* h = begin_energy_measurement_for_core(0);
 	Rapl* h = begin_energy_measurement();
 	r.result = load_fn();
 	r.energy = complete_energy_measurement(h);
+	//r.energy = complete_energy_measurement_for_core(h, 0);
 	return r;
 }
 

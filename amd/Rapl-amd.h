@@ -28,6 +28,8 @@ class Rapl {
 		int total_packages=0;
 		int package_map[MAX_PACKAGES];
 
+		unsigned current_core = -1;
+
 			// Rapl state
 		rapl_state_t *current_state;
 		rapl_state_t *prev_state;
@@ -45,6 +47,7 @@ class Rapl {
 
 	public:
 		Rapl();
+		Rapl(unsigned core_index);
 		void reset();
 		void sample();
 		int detect_packages(void);

@@ -63,6 +63,35 @@ Rapl::Rapl() {
 	reset();
 }
 
+Rapl::Rapl(unsigned core_index) {
+	detect_packages();
+
+	if(core_index < 0 || core_index > total_cores/2) {
+		printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
+		exit(1);
+	}
+
+	current_core = core_index;
+
+	fd = (int*)malloc(sizeof(int)*total_cores/2);
+
+	for (int i = 0; i < total_cores/2; i++) {
+		fd[i] = open_msr(i);
+	}
+
+    int core_energy_units = read_msr(fd[0], AMD_MSR_PWR_UNIT);
+
+	time_unit = (core_energy_units & AMD_TIME_UNIT_MASK) >> 16;
+	energy_unit = (core_energy_units & AMD_ENERGY_UNIT_MASK) >> 8;
+	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
+	
+	time_unit_d = pow(0.5,(double)(time_unit));
+	energy_unit_d = pow(0.5,(double)(energy_unit));
+	power_unit_d = pow(0.5,(double)(power_unit));
+
+	reset();
+}
+
 void Rapl::reset() {
 	prev_state = &state1;
 	current_state = &state2;
@@ -129,13 +158,23 @@ void Rapl::sample() {
 	int core_energy_raw;
 	int package_raw;
 
-	for (int i = 0; i < total_cores/2; i++) {
-		core_energy_raw = read_msr(fd[i], AMD_MSR_CORE_ENERGY);
-		package_raw = read_msr(fd[i], AMD_MSR_PACKAGE_ENERGY);
+	if(current_core == -1) {
+		for (int i = 0; i < total_cores/2; i++) {
+			core_energy_raw = read_msr(fd[i], AMD_MSR_CORE_ENERGY);
+			package_raw = read_msr(fd[i], AMD_MSR_PACKAGE_ENERGY);
 
-		next_state->pp0[i] = core_energy_raw;
-		next_state->pkg[i] = package_raw;
+			next_state->pp0[i] = core_energy_raw;
+			next_state->pkg[i] = package_raw;
+		}
+	} else {
+		core_energy_raw = read_msr(fd[current_core], AMD_MSR_CORE_ENERGY);
+		package_raw = read_msr(fd[current_core], AMD_MSR_PACKAGE_ENERGY);
+
+		next_state->pp0[current_core] = core_energy_raw;
+		next_state->pkg[current_core] = package_raw;
 	}
+
+
 
 	gettimeofday(&(next_state->tsc), NULL);
 
