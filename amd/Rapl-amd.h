@@ -18,6 +18,10 @@ struct total_state_t {
 
 class Rapl {
 	private:
+		static Rapl* instance;
+
+		Rapl();
+
 		int* fd;
 
 		unsigned int time_unit, energy_unit, power_unit;
@@ -46,12 +50,23 @@ class Rapl {
         double power_pkg(uint64_t* before, uint64_t* after, double time_delta);
 
 	public:
-		Rapl();
-		Rapl(unsigned core_index);
+		static Rapl* get_instance() {
+        if (instance == nullptr) {
+            instance = new Rapl();
+        }
+        return instance;
+    }
+
+
+		//Rapl();
+		//Rapl(unsigned core_index);
 		void reset();
 		void sample();
+		void sample_core();
 		int detect_packages(void);
 		int open_msr(int core);
+
+		void free_state();
 
 		double total_time();
 		double current_time();
