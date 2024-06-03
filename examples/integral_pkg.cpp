@@ -1,7 +1,7 @@
 // extern "C" {
 // #include "interface.h"
 // }
-#include "interface.h"
+#include "../amd/interface.h"
 #include <omp.h>
 
 double integral(auto f, double a, double b, unsigned long long n) {
