@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../amd/interface.h"
+#include "../intel/interface.h"
 
 void bubbleSort(std::vector<int>& arr) {
     int n = arr.size();

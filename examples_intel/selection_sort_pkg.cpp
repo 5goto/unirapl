@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../amd/interface.h"
+#include "../intel/interface.h"
 
 void selectionSort(std::vector<int>& arr) {
     int n = arr.size();

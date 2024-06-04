@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <algorithm>
-#include "../amd/interface.h"
+#include "../intel/interface.h"
 
 // Реализация алгоритма жадной упаковки рюкзака
 int greedyKnapsack(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
