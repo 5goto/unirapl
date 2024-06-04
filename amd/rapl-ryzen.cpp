@@ -19,7 +19,6 @@
 
 #include "Rapl-amd.h"
 
-//#include "Rapl.h"
 
 // ENERGY PWR UNIT MSR
 #define AMD_MSR_PWR_UNIT 0xC0010299
@@ -68,34 +67,34 @@ Rapl::Rapl() {
 	reset();
 }
 
-// Rapl::Rapl(unsigned core_index) {
-// 	detect_packages();
+Rapl::Rapl(unsigned core_index) {
+	detect_packages();
 
-// 	if(core_index < 0 || core_index > total_cores/2) {
-// 		printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
-// 		exit(1);
-// 	}
+	if(core_index < 0 || core_index > total_cores/2) {
+		printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
+		exit(1);
+	}
 
-// 	current_core = core_index;
+	current_core = core_index;
 
-// 	fd = (int*)malloc(sizeof(int)*total_cores/2);
+	fd = (int*)malloc(sizeof(int)*total_cores/2);
 
-// 	for (int i = 0; i < total_cores/2; i++) {
-// 		fd[i] = open_msr(i);
-// 	}
+	for (int i = 0; i < total_cores/2; i++) {
+		fd[i] = open_msr(i);
+	}
 
-//     int core_energy_units = read_msr(fd[0], AMD_MSR_PWR_UNIT);
+    int core_energy_units = read_msr(fd[0], AMD_MSR_PWR_UNIT);
 
-// 	time_unit = (core_energy_units & AMD_TIME_UNIT_MASK) >> 16;
-// 	energy_unit = (core_energy_units & AMD_ENERGY_UNIT_MASK) >> 8;
-// 	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
+	time_unit = (core_energy_units & AMD_TIME_UNIT_MASK) >> 16;
+	energy_unit = (core_energy_units & AMD_ENERGY_UNIT_MASK) >> 8;
+	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
 	
-// 	time_unit_d = pow(0.5,(double)(time_unit));
-// 	energy_unit_d = pow(0.5,(double)(energy_unit));
-// 	power_unit_d = pow(0.5,(double)(power_unit));
+	time_unit_d = pow(0.5,(double)(time_unit));
+	energy_unit_d = pow(0.5,(double)(energy_unit));
+	power_unit_d = pow(0.5,(double)(power_unit));
 
-// 	reset();
-// }
+	reset_core();
+}
 
 void Rapl::reset() {
 	prev_state = &state1;
@@ -103,13 +102,9 @@ void Rapl::reset() {
 	next_state = &state3;
 
     prev_state->pkg = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
-	prev_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
-
     current_state->pkg = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
-	current_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
-
     next_state->pkg = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
-	next_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
+
 
 	// sample twice to fill current and previous
 	sample();
@@ -117,16 +112,36 @@ void Rapl::reset() {
 
 	// Initialize running_total
 	running_total.pkg = 0;
+	//gettimeofday(&(running_total.tsc), NULL);
+}
+
+void Rapl::reset_core() {
+	prev_state = &state1;
+	current_state = &state2;
+	next_state = &state3;
+
+	prev_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
+	current_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
+	next_state->pp0 = (uint64_t*)malloc(sizeof(uint64_t)*total_cores/2);
+
+	// sample twice to fill current and previous
+	sample_core();
+	sample_core();
+
+	// Initialize running_total
 	running_total.pp0 = 0;
 	//gettimeofday(&(running_total.tsc), NULL);
 }
 
 void Rapl::free_state(){
-	sample();
-
 	// Initialize running_total
-	running_total.pkg = 0;
-	running_total.pp0 = 0;
+	if (current_core == -1) {
+		sample();
+		running_total.pkg = 0;
+	} else {
+		sample_core();
+		running_total.pp0 = 0;
+	}
 }
 
 
@@ -238,41 +253,6 @@ int Rapl::detect_packages(void) {
 
 	return 0;
 }
-
-// double Rapl::time_delta(struct timeval *begin, struct timeval *end) {
-//         return (end->tv_sec - begin->tv_sec)
-//                 + ((end->tv_usec - begin->tv_usec)/1000000.0);
-// }
-
-// double Rapl::total_time() {
-// 	return time_delta(&(running_total.tsc), &(current_state->tsc));
-// }
-
-// double Rapl::current_time() {
-// 	return time_delta(&(prev_state->tsc), &(current_state->tsc));
-// }
-
-// double Rapl::pkg_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power_pkg(prev_state->pkg, current_state->pkg, t);
-// }
-
-// double Rapl::pp0_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power(prev_state->pp0, current_state->pp0, t);
-// }
-
-// double Rapl::power(uint64_t* before, uint64_t* after, double time_delta) {
-// 	if (time_delta == 0.0f || time_delta == -0.0f) { return 0.0; }
-// 	double energy = energy_unit_d * ((double) energy_delta(before,after));
-// 	return energy / time_delta;
-// }
-
-// double Rapl::power_pkg(uint64_t* before, uint64_t* after, double time_delta) {
-// 	if (time_delta == 0.0f || time_delta == -0.0f) { return 0.0; }
-// 	double energy = energy_unit_d * ((double) (energy_delta_pkg(before,after)));
-// 	return energy / time_delta;
-// }
 
 uint64_t Rapl::energy_delta(uint64_t* before, uint64_t* after) {
 	uint64_t sum = 0;

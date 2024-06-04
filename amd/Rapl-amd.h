@@ -21,6 +21,7 @@ class Rapl {
 		static Rapl* instance;
 
 		Rapl();
+		Rapl(unsigned core_index);
 
 		int* fd;
 
@@ -51,16 +52,21 @@ class Rapl {
 
 	public:
 		static Rapl* get_instance() {
-        if (instance == nullptr) {
-            instance = new Rapl();
-        }
+			if (instance == nullptr) {
+				instance = new Rapl();
+			}
         return instance;
-    }
+    	}
 
+		static Rapl* get_instance_core(unsigned core_index) {
+			if (instance == nullptr) {
+				instance = new Rapl(core_index);
+			}
+        return instance;
+    	}
 
-		//Rapl();
-		//Rapl(unsigned core_index);
 		void reset();
+		void reset_core();
 		void sample();
 		void sample_core();
 		int detect_packages(void);
