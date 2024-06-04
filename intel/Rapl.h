@@ -16,12 +16,18 @@ struct rapl_state_t {
 class Rapl {
 
 private:
+	static Rapl* instance; // singlton instance
 	// Rapl configuration
+	Rapl();
+	Rapl(unsigned core_index);
+
 	int fd;
 	int core = 0;
 	bool pp1_supported = true;
 	double power_units, energy_units, time_units;
 	double thermal_spec_power, minimum_power, maximum_power, time_window;
+
+	unsigned current_core = -1;
 
 	// Rapl state
 	rapl_state_t *current_state;
@@ -37,7 +43,20 @@ private:
 	double power(uint64_t before, uint64_t after, double time_delta);
 
 public:
-	Rapl();
+	static Rapl* get_instance() {
+			if (instance == nullptr) {
+				instance = new Rapl();
+			}
+        return instance;
+    }
+
+		static Rapl* get_instance_core(unsigned core_index) {
+			if (instance == nullptr) {
+				instance = new Rapl(core_index);
+			}
+        return instance;
+    }
+
 	void reset();
 	void sample();
 
@@ -58,6 +77,9 @@ public:
 
 	double total_time();
 	double current_time();
+
+	void free_state();
+	void sample_core();
 };
 
 #endif /* RAPL_H_ */

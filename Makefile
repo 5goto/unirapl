@@ -22,6 +22,11 @@ selection_sort_pkg: examples/selection_sort_pkg.cpp amd/rapl-ryzen.cpp amd/reali
 selection_sort_core: examples/selection_sort_core.cpp amd/rapl-ryzen.cpp amd/realisation.cpp
 	g++ -std=c++20 $^ -o selection_sort_core
 
+##################################
+backpack_pkg_intel: examples_intel/backpack_pkg.cpp intel/Rapl.cpp intel/realisation.cpp
+	g++ -std=c++20 $^ -o backpack_pkg_intel
+
+
 # Цель для очистки выходных файлов
 clean:
 	rm -f backpack examples/*.o
