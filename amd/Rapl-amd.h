@@ -47,8 +47,6 @@ class Rapl {
 		double time_delta(struct timeval *begin, struct timeval *after);
 		uint64_t energy_delta(uint64_t* before, uint64_t* after);
         uint64_t energy_delta_pkg(uint64_t* before, uint64_t* after);
-		double power(uint64_t* before, uint64_t* after, double time_delta);
-        double power_pkg(uint64_t* before, uint64_t* after, double time_delta);
 
 	public:
 		static Rapl* get_instance() {
@@ -73,12 +71,6 @@ class Rapl {
 		int open_msr(int core);
 
 		void free_state();
-
-		double total_time();
-		double current_time();
-
-		double pkg_current_power();
-		double pp0_current_power();
 
 		double pkg_total_energy();
 		double pp0_total_energy();

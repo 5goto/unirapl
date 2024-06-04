@@ -40,9 +40,7 @@ Rapl* Rapl::instance = nullptr;
 Rapl::Rapl() {
 	detect_packages();
 
-
 	fd = (int*)malloc(sizeof(int)*total_cores/2);
-
 	for (int i = 0; i < total_cores/2; i++) {
 		fd[i] = open_msr(i);
 	}
@@ -204,7 +202,6 @@ void Rapl::sample() {
 void Rapl::sample_core() {
 	int core_energy_raw;
 
-	
 	core_energy_raw = read_msr(fd[current_core], AMD_MSR_CORE_ENERGY);
 
 	next_state->pp0[current_core] = core_energy_raw;

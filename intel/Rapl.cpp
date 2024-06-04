@@ -55,13 +55,15 @@
 #define IVYBRIDGE_E                    0x306F0
 #define SANDYBRIDGE_E                  0x206D0
 
+#define MAX_CPUS	1024
+#define MAX_PACKAGES	16
+
 
 Rapl* Rapl::instance = nullptr;
 
 Rapl::Rapl() {
 
 	open_msr();
-	//pp1_supported = detect_pp1();
 
 	/* Read MSR_RAPL_POWER_UNIT Register */
 	uint64_t raw_value = read_msr(MSR_RAPL_POWER_UNIT);
@@ -79,6 +81,31 @@ Rapl::Rapl() {
 	reset();
 }
 
+Rapl::Rapl(unsigned core_index) {
+	detect_packages();
+
+	fd_cores = (int*)malloc(sizeof(int)*total_cores/2);
+
+	for (int i = 0; i < total_cores/2; i++) {
+		fd_cores[i] = open_msr(i);
+	}
+
+	/* Read MSR_RAPL_POWER_UNIT Register */
+	uint64_t raw_value = read_msr(MSR_RAPL_POWER_UNIT);
+	power_units = pow(0.5,	(double) (raw_value & 0xf));
+	energy_units = pow(0.5,	(double) ((raw_value >> 8) & 0x1f));
+	time_units = pow(0.5,	(double) ((raw_value >> 16) & 0xf));
+
+	/* Read MSR_PKG_POWER_INFO Register */
+	raw_value = read_msr(MSR_PKG_POWER_INFO);
+	thermal_spec_power = power_units * ((double)(raw_value & 0x7fff));
+	minimum_power = power_units * ((double)((raw_value >> 16) & 0x7fff));
+	maximum_power = power_units * ((double)((raw_value >> 32) & 0x7fff));
+	time_window = time_units * ((double)((raw_value >> 48) & 0x7fff));
+
+	reset_core();
+}
+
 void Rapl::reset() {
 
 	prev_state = &state1;
@@ -91,11 +118,22 @@ void Rapl::reset() {
 
 	// Initialize running_total
 	running_total.pkg = 0;
-	//running_total.pp0 = 0;
-	//running_total.dram = 0;
-	//gettimeofday(&(running_total.tsc), NULL);
 }
 
+
+void Rapl::reset_core() {
+
+	prev_state = &state1;
+	current_state = &state2;
+	next_state = &state3;
+
+	// sample twice to fill current and previous
+	sample_core();
+	sample_core();
+
+	// Initialize running_total
+	running_total.pp0 = 0;
+}
 
 void Rapl::free_state(){
 	// Initialize running_total
@@ -108,38 +146,6 @@ void Rapl::free_state(){
 	}
 }
 
-
-// void Rapl::reset_core() {
-
-// 	prev_state = &state1;
-// 	current_state = &state2;
-// 	next_state = &state3;
-
-// 	// sample twice to fill current and previous
-// 	sample();
-// 	sample();
-
-// 	// Initialize running_total
-// 	running_total.pkg = 0;
-// 	running_total.pp0 = 0;
-// 	running_total.dram = 0;
-// 	//gettimeofday(&(running_total.tsc), NULL);
-// }
-
-// bool Rapl::detect_pp1() {
-// 	uint32_t eax_input = 1;
-// 	uint32_t eax;
-// 	__asm__("cpuid;"
-// 			:"=a"(eax)               // EAX into b (output)
-// 			:"0"(eax_input)          // 1 into EAX (input)
-// 			:"%ebx","%ecx","%edx");  // clobbered registers
-
-// 	uint32_t cpu_signature = eax & SIGNATURE_MASK;
-// 	if (cpu_signature == SANDYBRIDGE_E || cpu_signature == IVYBRIDGE_E) {
-// 		return false;
-// 	}
-// 	return true;
-//}
 
 void Rapl::open_msr() {
 	std::stringstream filename_stream;
@@ -161,12 +167,49 @@ void Rapl::open_msr() {
 	}
 }
 
+
+int Rapl::open_msr(int core) {
+
+	char msr_filename[BUFSIZ];
+	int fd;
+
+	sprintf(msr_filename, "/dev/cpu/%d/msr", core);
+	fd = open(msr_filename, O_RDONLY);
+	if ( fd < 0 ) {
+		if ( errno == ENXIO ) {
+			fprintf(stderr, "rdmsr: No CPU %d\n", core);
+			exit(2);
+		} else if ( errno == EIO ) {
+			fprintf(stderr, "rdmsr: CPU %d doesn't support MSRs\n", core);
+			exit(3);
+		} else {
+			perror("rdmsr:open");
+			fprintf(stderr,"Trying to open %s\n",msr_filename);
+			exit(127);
+		}
+	}
+
+	return fd;
+}
+
 uint64_t Rapl::read_msr(int msr_offset) {
 	uint64_t data;
 	if (pread(fd, &data, sizeof(data), msr_offset) != sizeof(data)) {
 		perror("read_msr():pread");
 		exit(127);
 	}
+	return data;
+}
+
+uint64_t Rapl::read_msr(int fd, unsigned int msr_offset) {
+
+	uint64_t data;
+
+	if ( pread(fd, &data, sizeof data, msr_offset) != sizeof data ) {
+		perror("rdmsr:pread");
+		exit(127);
+	}
+
 	return data;
 }
 
@@ -189,8 +232,8 @@ void Rapl::sample() {
 void Rapl::sample_core() {
 	uint32_t max_int = ~((uint32_t) 0);
 
-	next_state->pp0 = read_msr(MSR_PP0_ENERGY_STATUS) & max_int;
 
+	next_state->pp0 = read_msr(fd_cores[current_core], MSR_PP0_ENERGY_STATUS) & max_int;
 	running_total.pp0 += energy_delta(current_state->pp0, next_state->pp0);
 
 	// Rotate states
@@ -225,42 +268,6 @@ uint64_t Rapl::energy_delta(uint64_t before, uint64_t after) {
 	return eng_delta;
 }
 
-// double Rapl::pkg_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power(prev_state->pkg, current_state->pkg, t);
-// }
-
-// double Rapl::pp0_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power(prev_state->pp0, current_state->pp0, t);
-// }
-
-// double Rapl::pp1_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power(prev_state->pp1, current_state->pp1, t);
-// }
-
-// double Rapl::dram_current_power() {
-// 	double t = time_delta(&(prev_state->tsc), &(current_state->tsc));
-// 	return power(prev_state->dram, current_state->dram, t);
-// }
-
-// double Rapl::pkg_average_power() {
-// 	return pkg_total_energy() / total_time();
-// }
-
-// double Rapl::pp0_average_power() {
-// 	// Check for rollovers
-// 	return pp0_total_energy() / total_time();
-// }
-
-// double Rapl::pp1_average_power() {
-// 	return pp1_total_energy() / total_time();
-// }
-
-// double Rapl::dram_average_power() {
-// 	return dram_total_energy() / total_time();
-// }
 
 double Rapl::pkg_total_energy() {
 	return energy_units * ((double) running_total.pkg);
@@ -270,18 +277,36 @@ double Rapl::pp0_total_energy() {
 	return energy_units * ((double) running_total.pp0);
 }
 
-// double Rapl::pp1_total_energy() {
-// 	return energy_units * ((double) running_total.pp1);
-// }
 
-// double Rapl::dram_total_energy() {
-// 	return energy_units * ((double) running_total.dram);
-// }
+int Rapl::detect_packages() {
 
-// double Rapl::total_time() {
-// 	return time_delta(&(running_total.tsc), &(current_state->tsc));
-// }
+	char filename[BUFSIZ];
+	FILE *fff;
+	int package;
+	int i;
 
-// double Rapl::current_time() {
-// 	return time_delta(&(prev_state->tsc), &(current_state->tsc));
-// }
+	for(i=0;i<MAX_PACKAGES;i++) package_map[i]=-1;
+
+	//printf("\t");
+	for(i=0;i<MAX_CPUS;i++) {
+		sprintf(filename,"/sys/devices/system/cpu/cpu%d/topology/physical_package_id",i);
+		fff=fopen(filename,"r");
+		if (fff==NULL) break;
+		fscanf(fff,"%d",&package);
+		//printf("%d (%d)",i,package);
+		//if (i%8==7) printf("\n\t"); else printf(", ");
+		fclose(fff);
+
+		if (package_map[package]==-1) {
+			total_packages++;
+			package_map[package]=i;
+		}
+	}
+
+	//printf("\n");
+
+	total_cores=i;
+
+	//printf("\tDetected %d cores in %d packages\n\n", total_cores,total_packages);
+	return 0;
+}
