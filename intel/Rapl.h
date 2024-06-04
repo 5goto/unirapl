@@ -73,8 +73,6 @@ public:
 	double pp0_total_energy();
 
 	void free_state();
-	void sample_core();
-
 	int detect_packages();
 };
 
