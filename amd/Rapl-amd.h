@@ -18,6 +18,11 @@ struct total_state_t {
 
 class Rapl {
 	private:
+		static Rapl* instance;
+
+		Rapl();
+		Rapl(unsigned core_index);
+
 		int* fd;
 
 		unsigned int time_unit, energy_unit, power_unit;
@@ -27,6 +32,8 @@ class Rapl {
 		int total_cores=0;
 		int total_packages=0;
 		int package_map[MAX_PACKAGES];
+
+		unsigned current_core = -1;
 
 			// Rapl state
 		rapl_state_t *current_state;
@@ -40,19 +47,31 @@ class Rapl {
 		double time_delta(struct timeval *begin, struct timeval *after);
 		uint64_t energy_delta(uint64_t* before, uint64_t* after);
         uint64_t energy_delta_pkg(uint64_t* before, uint64_t* after);
-		double power(uint64_t* before, uint64_t* after, double time_delta);
-        double power_pkg(uint64_t* before, uint64_t* after, double time_delta);
 
 	public:
-		Rapl();
+		static Rapl* get_instance() {
+			if (instance == nullptr) {
+				instance = new Rapl();
+			}
+        return instance;
+    	}
+
+		static Rapl* get_instance_core(unsigned core_index) {
+			if (instance == nullptr) {
+				instance = new Rapl(core_index);
+			}
+        return instance;
+    	}
+
 		void reset();
+		void reset_core();
 		void sample();
+		void sample_core();
 		int detect_packages(void);
 		int open_msr(int core);
 
-		double total_time();
-		double current_time();
+		void free_state();
 
-		double pkg_current_power();
-		double pp0_current_power();
+		double pkg_total_energy();
+		double pp0_total_energy();
 };
