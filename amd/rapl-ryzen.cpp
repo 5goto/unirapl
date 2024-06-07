@@ -1,4 +1,3 @@
-
 #include <sys/time.h>
 
 
@@ -18,6 +17,7 @@
 #include <linux/perf_event.h>
 
 #include "Rapl-amd.h"
+#include <iostream>
 
 
 // ENERGY PWR UNIT MSR
@@ -37,6 +37,14 @@
 
 Rapl* Rapl::instance = nullptr;
 
+Rapl::~Rapl() {
+	free(fd);
+	free(prev_state);
+	free(current_state);
+	free(next_state);
+}
+
+
 Rapl::Rapl() {
 	detect_packages();
 
@@ -53,15 +61,15 @@ Rapl::Rapl() {
 	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
 	//printf("Time_unit:%d, Energy_unit: %d, Power_unit: %d\n", time_unit, energy_unit, power_unit);
 	
-	time_unit_d = pow(0.5,(double)(time_unit));
-	energy_unit_d = pow(0.5,(double)(energy_unit));
-	power_unit_d = pow(0.5,(double)(power_unit));
+	//time_unit_d = pow(0.5,(double)(time_unit));
+	//energy_unit_d = pow(0.5,(double)(energy_unit));
+	//power_unit_d = pow(0.5,(double)(power_unit));
 
-	// time_unit_d = std::scalbn(0.5, time_unit);
-	// energy_unit_d = std::scalbn(0.5, energy_unit);
-	// power_unit_d = std::scalbn(0.5, power_unit);
+	time_unit_d = std::scalbn(0.5, -time_unit + 1);
+	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
+	power_unit_d = std::scalbn(0.5, -power_unit + 1);
 
-	// printf("Time_unit:%g, Energy_unit: %g, Power_unit: %g\n", time_unit_d, energy_unit_d, power_unit_d);
+	//printf("Time_unit:%g, Energy_unit: %g, Power_unit: %g\n", time_unit_d, energy_unit_d, power_unit_d);
 	reset();
 }
 
@@ -69,8 +77,15 @@ Rapl::Rapl(unsigned core_index) {
 	detect_packages();
 
 	if(core_index < 0 || core_index > total_cores/2) {
+		unsigned core_number;
+
 		printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
-		exit(1);
+		do {
+			printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
+			std::cin >> core_number;
+		} while (core_number < 0 || core_number >= total_cores / 2);
+		
+		core_index = core_number;
 	}
 
 	current_core = core_index;
@@ -87,9 +102,13 @@ Rapl::Rapl(unsigned core_index) {
 	energy_unit = (core_energy_units & AMD_ENERGY_UNIT_MASK) >> 8;
 	power_unit = (core_energy_units & AMD_POWER_UNIT_MASK);
 	
-	time_unit_d = pow(0.5,(double)(time_unit));
-	energy_unit_d = pow(0.5,(double)(energy_unit));
-	power_unit_d = pow(0.5,(double)(power_unit));
+	//time_unit_d = pow(0.5,(double)(time_unit));
+	//energy_unit_d = pow(0.5,(double)(energy_unit));
+	//power_unit_d = pow(0.5,(double)(power_unit));
+
+	time_unit_d = std::scalbn(0.5, -time_unit + 1);
+	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
+	power_unit_d = std::scalbn(0.5, -power_unit + 1);
 
 	reset_core();
 }
@@ -160,7 +179,7 @@ int Rapl::open_msr(int core) {
 		} else {
 			perror("rdmsr:open");
 			fprintf(stderr,"Trying to open %s\n",msr_filename);
-			exit(127);
+			exit(126);
 		}
 	}
 
@@ -172,8 +191,8 @@ uint64_t Rapl::read_msr(int fd, unsigned int msr_offset) {
 	uint64_t data;
 
 	if ( pread(fd, &data, sizeof data, msr_offset) != sizeof data ) {
-		perror("rdmsr:pread");
-		exit(127);
+		perror("Ошибка чтения MSR");
+		exit(126);
 	}
 
 	return data;
@@ -182,14 +201,10 @@ uint64_t Rapl::read_msr(int fd, unsigned int msr_offset) {
 void Rapl::sample() {
 	int package_raw;
 
-	for (int i = 0; i < total_cores/2; i++) {
-			try {
-				package_raw = read_msr(fd[i], AMD_MSR_PACKAGE_ENERGY);
-				next_state->pkg[i] = package_raw;
-			} catch(...) {
-				continue;
-			}
-		}
+
+	package_raw = read_msr(fd[0], AMD_MSR_PACKAGE_ENERGY);
+	next_state->pkg[0] = package_raw;
+
 	running_total.pkg += energy_delta_pkg(current_state->pkg, next_state->pkg);
 	
 	// Rotate states

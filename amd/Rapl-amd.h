@@ -21,6 +21,7 @@ class Rapl {
 		static Rapl* instance;
 
 		Rapl();
+		~Rapl();
 		Rapl(unsigned core_index);
 
 		int* fd;
