@@ -7,7 +7,7 @@
 struct rapl_state_t {
 	uint64_t* pkg;
 	uint64_t* pp0;
-	struct timeval tsc;
+	//struct timeval tsc;
 };
 
 struct total_state_t {
@@ -36,7 +36,7 @@ class Rapl {
 
 		unsigned current_core = -1;
 
-			// Rapl state
+		// Rapl state
 		rapl_state_t *current_state;
 		rapl_state_t *prev_state;
 		rapl_state_t *next_state;

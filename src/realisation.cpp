@@ -1,8 +1,22 @@
 #include <iostream>
 #include <fstream>
+#include "interface.h"
 
 
-int main() {
+Rapl* begin_energy_measurement() {
+    Rapl *rapl = Rapl::get_instance();
+    rapl->free_state();
+    return rapl;
+}
+
+
+double complete_energy_measurement(Rapl* h) {
+    h->sample();
+    return h->total_energy();
+}
+
+
+int define_cpu() {
   std::ifstream cpuinfo("/proc/cpuinfo");
   if (!cpuinfo.is_open()) {
    std::cerr << "Error opening /proc/cpuinfo" << std::endl;
