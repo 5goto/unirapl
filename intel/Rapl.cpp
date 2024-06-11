@@ -84,6 +84,8 @@ Rapl::Rapl() {
 Rapl::Rapl(unsigned core_index) {
 	detect_packages();
 
+	current_core = core_index;
+
 	fd_cores = (int*)malloc(sizeof(int)*total_cores/2);
 
 	for (int i = 0; i < total_cores/2; i++) {
@@ -91,13 +93,13 @@ Rapl::Rapl(unsigned core_index) {
 	}
 
 	/* Read MSR_RAPL_POWER_UNIT Register */
-	uint64_t raw_value = read_msr(MSR_RAPL_POWER_UNIT);
+	uint64_t raw_value = read_msr(fd_cores[current_core], MSR_RAPL_POWER_UNIT);
 	power_units = pow(0.5,	(double) (raw_value & 0xf));
 	energy_units = pow(0.5,	(double) ((raw_value >> 8) & 0x1f));
 	time_units = pow(0.5,	(double) ((raw_value >> 16) & 0xf));
 
 	/* Read MSR_PKG_POWER_INFO Register */
-	raw_value = read_msr(MSR_PKG_POWER_INFO);
+	raw_value = read_msr(fd_cores[current_core], MSR_PKG_POWER_INFO);
 	thermal_spec_power = power_units * ((double)(raw_value & 0x7fff));
 	minimum_power = power_units * ((double)((raw_value >> 16) & 0x7fff));
 	maximum_power = power_units * ((double)((raw_value >> 32) & 0x7fff));
@@ -231,7 +233,6 @@ void Rapl::sample() {
 
 void Rapl::sample_core() {
 	uint32_t max_int = ~((uint32_t) 0);
-
 
 	next_state->pp0 = read_msr(fd_cores[current_core], MSR_PP0_ENERGY_STATUS) & max_int;
 	running_total.pp0 += energy_delta(current_state->pp0, next_state->pp0);
