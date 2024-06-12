@@ -9,7 +9,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <iostream>
-#include "RaplConfig.h"
+#include <fstream>
+#include <cstdlib>
 
 
 Rapl* Rapl::instance = nullptr; // singleton
@@ -17,21 +18,13 @@ Rapl* Rapl::instance = nullptr; // singleton
 Rapl::Rapl() {
 	detect_packages();
 	
-	RaplConfig* conf = new RaplConfig;
+	conf = new RaplConfig;
+	conf->parseConfig();
+
 	get_architecture(conf);
-
-    // if(core > total_cores/2) {
-	// 	unsigned core_number;
-
-	// 	printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
-	// 	do {
-	// 		printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
-	// 		std::cin >> core_number;
-	// 	} while (core_number < 0 || core_number >= total_cores / 2);
-		
-	// 	current_core = core_number;
-	// } 
-    
+	get_target(conf);
+	get_core(conf);
+    get_msr(conf);
 
 	fd = open_msr(current_core);
     int core_energy_units = read_msr(fd, config_.MSR_PWR_UNIT);
@@ -53,6 +46,7 @@ Rapl::~Rapl() {
 	free(prev_state);
 	free(current_state);
 	free(next_state);
+	delete conf;
 }
 
 int Rapl::open_msr(int core) {
@@ -128,10 +122,10 @@ void Rapl::sample() {
 	int package_raw;
 
 
-	package_raw = read_msr(fd, config_.MSR_PACKAGE_ENERGY);
+	package_raw = (target == "PKG") ? read_msr(fd, config_.MSR_PACKAGE_ENERGY) : read_msr(fd, config_.MSR_CORE_ENERGY);
 	next_state->pkg[0] = package_raw;
 
-	running_total.pkg += energy_delta(current_state->pkg, next_state->pkg);
+	all += energy_delta(current_state->pkg, next_state->pkg);
 	
 	// Rotate states
 	rapl_state_t *pprev_state = prev_state;
@@ -154,7 +148,7 @@ uint64_t Rapl::read_msr(int fd, unsigned int msr_offset) {
 
 
 double Rapl::total_energy() {
-	return energy_unit_d * ((double) *running_total.pkg);
+	return energy_unit_d * ((double) all);
 }
 
 
@@ -170,17 +164,26 @@ void Rapl::reset() {
 	sample();
 	sample();
 
-	running_total.pkg = 0;
+	all = 0;
 }
 
 void Rapl::free_state() {
 	sample();
-	running_total.pkg = 0;
+	all = 0;
 }
 
 void Rapl::get_architecture(RaplConfig* conf) {
-	architecture = conf->get_string("architecture");
-	//if (architecture != "AMD" && architecture != "INTEL")
+	bool auto_detect = conf->get_bool("auto_detect_architecture");
+	if(auto_detect) {
+		std::string arch = get_arch_by_cpuinfo();
+		if(arch == "OTHER") {
+			architecture = conf->get_string("architecture");
+		} else {
+			architecture = arch;
+		}
+	} else {
+		architecture = conf->get_string("architecture");
+	}
 }
 
 void Rapl::get_target(RaplConfig* conf) {
@@ -188,7 +191,16 @@ void Rapl::get_target(RaplConfig* conf) {
 }
 
 void Rapl::get_core(RaplConfig* conf) {
-	current_core = conf->get_number("core");
+	if(target != "CORE") {
+		current_core = conf->get_number("core");
+		if(current_core > total_cores/2) {
+			printf("Avialible cors: [%d:%d]", 0, total_cores/2 - 1);
+			printf("Set default core: 0");
+			current_core = 0;
+		} 
+	} else {
+		current_core = 0;
+	}
 }
 
 void Rapl::get_msr(RaplConfig* conf) {
@@ -200,20 +212,27 @@ void Rapl::get_msr(RaplConfig* conf) {
 	config_.MSR_CORE_ENERGY = conf->get_msr(architecture + "_MSR_CORE_ENERGY");
 }
 
-// void Rapl::init_amd() {
-//     config_.MSR_PWR_UNIT = 0xC0010299;
-//     config_.TIME_UNIT_MASK = 0xF0000;
-//     config_.ENERGY_UNIT_MASK = 0x1F00;
-//     config_.POWER_UNIT_MASK = 0xF;
-//     config_.MSR_PACKAGE_ENERGY = 0xC001029B;
-//     config_.MSR_CORE_ENERGY = 0xC001029A;
-// }
+std::string Rapl::get_arch_by_cpuinfo() {
+  std::ifstream cpuinfo("/proc/cpuinfo");   
 
-// void Rapl::init_intel() {
-//     config_.MSR_PWR_UNIT = 0x606;
-//     config_.TIME_UNIT_MASK = 0xf;
-//     config_.ENERGY_UNIT_MASK = 0x1f;
-//     config_.POWER_UNIT_MASK = 0xf;
-//     config_.MSR_PACKAGE_ENERGY = 0x611;
-//     config_.MSR_CORE_ENERGY = 0x639;
-// }
+  if (!cpuinfo.is_open()) {
+   std::cerr << "Error opening /proc/cpuinfo" << std::endl;
+    return "OTHER";
+  }
+
+  std::string line;
+  while (getline(cpuinfo, line)) {
+    if (line.find("vendor_id") != std::string::npos) {
+
+      std::string vendor_id = line.substr(line.find(":") + 1);
+      if (vendor_id == " GenuineIntel") {
+        return "INTEL"; // intel
+      } else if (vendor_id == " AuthenticAMD") {
+        return "AMD"; // amd 
+      } else {
+        return "OTHER"; // other
+      }
+    }
+  }
+  return "OTHER";
+}

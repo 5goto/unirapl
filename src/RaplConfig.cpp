@@ -14,7 +14,6 @@ void RaplConfig::parseConfig() {
     if (!file.is_open()) {
         throw std::runtime_error("Невозможно открыть файл конфигурации");
     }
-
     std::string line;
     while (getline(file, line)) {
         // Разделить строку по двоеточию
@@ -32,11 +31,12 @@ void RaplConfig::parseConfig() {
 }
 
 uint64_t RaplConfig::get_msr(std::string msr) {
-    return std::stoul(config.at(msr), nullptr, 16);
+    return std::stoul(config[msr], nullptr, 16);
 }
 
 bool RaplConfig::get_bool(std::string val) {
-    std::string str = config.at(val);
+    std::string str = config[val];
+
     if (str == "true") {
         return true;
     } else if (str == "false") {
@@ -47,22 +47,9 @@ bool RaplConfig::get_bool(std::string val) {
 }
 
 int RaplConfig::get_number(std::string num) {
-    return stoi(config.at(num));
+    return stoi(config[num]);
 }
 
 std::string RaplConfig::get_string(std::string str) {
-    return config.at(str);
+    return config[str];
 }
-
-
-// int main() {
-//     RaplConfig* a = new RaplConfig;
-//     a->parseConfig();
-//     std::cout << a->get_bool("auto_detect_architecture") << std::endl;
-//     std::cout << a->get_number("core") << std::endl;
-//     std::cout << a->get_string("target") << std::endl;
-//     std::cout << a->get_msr("AMD_ENERGY_UNIT_MASK") << std::endl;
-//     std::cout << a->get_msr("INTEL_MSR_CORE_ENERGY") << std::endl;
-
-//     return 0;
-// }
