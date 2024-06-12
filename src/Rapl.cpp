@@ -15,9 +15,36 @@
 
 Rapl* Rapl::instance = nullptr; // singleton
 
+// Rapl::Rapl() {
+// 	detect_packages();
+	
+// 	conf = new RaplConfig;
+// 	conf->parseConfig();
+
+// 	get_architecture(conf);
+// 	get_target(conf);
+// 	get_core(conf);
+//     get_msr(conf);
+
+// 	fd = open_msr(current_core);
+//     int core_energy_units = read_msr(fd, config_.MSR_PWR_UNIT);
+	
+	
+// 	time_unit = (core_energy_units & config_.TIME_UNIT_MASK) >> 16;
+// 	energy_unit = (core_energy_units & config_.ENERGY_UNIT_MASK) >> 8;
+// 	power_unit = (core_energy_units & config_.POWER_UNIT_MASK);
+// 	std::cout << time_unit << " " << energy_unit << " " << power_unit << std::endl;
+
+// 	time_unit_d = std::scalbn(0.5, -time_unit + 1);
+// 	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
+// 	power_unit_d = std::scalbn(0.5, -power_unit + 1);
+
+// 	reset();
+// }
+
 Rapl::Rapl() {
 	detect_packages();
-	
+  
 	conf = new RaplConfig;
 	conf->parseConfig();
 
@@ -27,17 +54,21 @@ Rapl::Rapl() {
     get_msr(conf);
 
 	fd = open_msr(current_core);
-    int core_energy_units = read_msr(fd, config_.MSR_PWR_UNIT);
-	
-	
-	time_unit = (core_energy_units & config_.TIME_UNIT_MASK) >> 16;
-	energy_unit = (core_energy_units & config_.ENERGY_UNIT_MASK) >> 8;
-	power_unit = (core_energy_units & config_.POWER_UNIT_MASK);
-	
+    uint64_t core_energy_units = read_msr(fd, config_.MSR_PWR_UNIT);
 
-	time_unit_d = std::scalbn(0.5, -time_unit + 1);
-	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
-	power_unit_d = std::scalbn(0.5, -power_unit + 1);
+	if(architecture == "INTEL") {
+		power_unit = (double) (core_energy_units & config_.POWER_UNIT_MASK);
+		energy_unit = (double) ((core_energy_units >> 8) & config_.ENERGY_UNIT_MASK);
+		time_unit = (double) ((core_energy_units >> 16) & config_.TIME_UNIT_MASK);
+	} else {
+		time_unit = (core_energy_units & config_.TIME_UNIT_MASK) >> 16;
+		energy_unit = (core_energy_units & config_.ENERGY_UNIT_MASK) >> 8;
+		power_unit = (core_energy_units & config_.POWER_UNIT_MASK);
+	}
+
+  	time_unit_d = std::scalbn(0.5, -time_unit + 1);
+  	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
+  	power_unit_d = std::scalbn(0.5, -power_unit + 1);
 
 	reset();
 }
@@ -121,8 +152,8 @@ uint64_t Rapl::energy_delta(uint64_t* before, uint64_t* after) {
 void Rapl::sample() {
 	int package_raw;
 
-
 	package_raw = (target == "PKG") ? read_msr(fd, config_.MSR_PACKAGE_ENERGY) : read_msr(fd, config_.MSR_CORE_ENERGY);
+
 	next_state->pkg[0] = package_raw;
 
 	all += energy_delta(current_state->pkg, next_state->pkg);

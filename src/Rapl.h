@@ -36,7 +36,7 @@ protected:
     int fd;
     std::string architecture;
     std::string target;
-    unsigned int time_unit, energy_unit, power_unit;
+    double time_unit, energy_unit, power_unit;
 	double time_unit_d, energy_unit_d, power_unit_d;
 
     // Rapl state
