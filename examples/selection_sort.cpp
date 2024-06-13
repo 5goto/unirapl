@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../amd/interface.h"
+#include "../src/interface.h"
 
 void selectionSort(std::vector<int>& arr) {
     int n = arr.size();
@@ -21,6 +21,8 @@ int main() {
     int numElements = 500;  // Начальное количество элементов
     int maxElement = 100;     // Начальный максимальный элемент
 
+    CsvData data("backpack");
+
     for (int i = 0; i < 10; i++) {
         std::vector<int> arr;
         srand(time(NULL));  // Инициализация генератора случайных чисел
@@ -37,6 +39,7 @@ int main() {
         selectionSort(arr);
         clock_t end = clock();
         energy = complete_energy_measurement(h);
+        data.write(i + 1, energy);
 
         std::cout << "==============================" << std::endl;
         std::cout << "Итерация " << i + 1 << std::endl;

@@ -1,7 +1,7 @@
 // extern "C" {
 // #include "interface.h"
 // }
-#include "../amd/interface.h"
+#include "../src/interface.h"
 #include <omp.h>
 
 double integral(auto f, double a, double b, unsigned long long n) {
@@ -38,9 +38,12 @@ auto run_experiment(auto load_fn) {
 #include <iostream>
 
 int main(int argc, char** argv) {
+	CsvData data("backpack");
+
 	for (unsigned long long n = 1024; n <= 0x80000000; n+= n) {
 		auto [r, e] = run_experiment([n] () {return integral([](double x) {return x * x;}, -1, 1, n);});
 		std::cout << n << "." << r << "," << e << "\n";
+		data.write(n, e);
 	}
 	return 0;
 }

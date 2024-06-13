@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <algorithm>
-#include "../amd/interface.h"
+#include "../src/interface.h"
 
 // Реализация алгоритма жадной упаковки рюкзака
 int greedyKnapsack(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
@@ -48,8 +48,9 @@ int main() {
     int maxValue = 100;     // Максимальная стоимость предмета
     int maxWeight = 100;    // Максимальный вес предмета
     int capacity = 500;     // Вместимость рюкзака
+    CsvData data("backpack");
 
-    for (int i = 0; i < 10; i++) {  
+    for (int i = 0; i < 8; i++) {  
         std::vector<int> weights;
         std::vector<int> values;
         generateData(weights, values, numItems, maxValue, maxWeight);
@@ -65,6 +66,7 @@ int main() {
         int maxValuePacked = greedyKnapsack(weights, values, capacity);
         clock_t end = clock();
         energy = complete_energy_measurement(h);
+        data.write(i + 1, energy);
 
         std::cout << "==============================" << std::endl;
         std::cout << "Итерация " << i + 1 << std::endl;

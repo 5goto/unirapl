@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-#include "../amd/interface.h"
+#include "../src/interface.h"
 
 void bubbleSort(std::vector<int>& arr) {
     int n = arr.size();
@@ -22,6 +22,8 @@ int main() {
     int numElements = 500;  // Начальное количество элементов
     int maxElement = 100;     // Начальный максимальный элемент
 
+    CsvData data("backpack");
+
     for (int i = 0; i < 8; i++) {
         // Генерация набора данных
         std::vector<int> arr;
@@ -40,6 +42,7 @@ int main() {
         bubbleSort(arr);
         clock_t end = clock();
         energy = complete_energy_measurement(h);
+        data.write(i + 1, energy);
 
         std::cout << "==============================" << std::endl;
         std::cout << "Итерация " << i + 1 << std::endl;
