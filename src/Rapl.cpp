@@ -60,15 +60,18 @@ Rapl::Rapl() {
 		power_unit = (double) (core_energy_units & config_.POWER_UNIT_MASK);
 		energy_unit = (double) ((core_energy_units >> 8) & config_.ENERGY_UNIT_MASK);
 		time_unit = (double) ((core_energy_units >> 16) & config_.TIME_UNIT_MASK);
+		printf("Time_unit:%f, Energy_unit: %f, Power_unit: %f\n", time_unit, energy_unit, power_unit);
 	} else {
 		time_unit = (core_energy_units & config_.TIME_UNIT_MASK) >> 16;
 		energy_unit = (core_energy_units & config_.ENERGY_UNIT_MASK) >> 8;
 		power_unit = (core_energy_units & config_.POWER_UNIT_MASK);
+		printf("Time_unit:%f, Energy_unit: %f, Power_unit: %f\n", time_unit, energy_unit, power_unit);
 	}
 
   	time_unit_d = std::scalbn(0.5, -time_unit + 1);
   	energy_unit_d = std::scalbn(0.5, -energy_unit + 1);
   	power_unit_d = std::scalbn(0.5, -power_unit + 1);
+	printf("Time_unit:%g, Energy_unit: %g, Power_unit: %g\n", time_unit_d, energy_unit_d, power_unit_d);
 
 	reset();
 }

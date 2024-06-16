@@ -49,20 +49,22 @@ int main() {
     int maxWeight = 100;    // Максимальный вес предмета
     int capacity = 500;     // Вместимость рюкзака
     CsvData data("backpack");
+    float freq_1, freq_2;
 
-    for (int i = 0; i < 8; i++) {  
+    for (int i = 0; i < 30; i++) {  
         std::vector<int> weights;
         std::vector<int> values;
         generateData(weights, values, numItems, maxValue, maxWeight);
         double energy;
 
-        numItems *= 2;
-        maxValue *= 2;
-        maxWeight *= 2;
+        numItems *= 1.1;
+        maxValue *= 1.1;
+        maxWeight *= 1.1;
 
         // Запуск алгоритма
         Rapl* h = begin_energy_measurement();
         clock_t start = clock();
+
         int maxValuePacked = greedyKnapsack(weights, values, capacity);
         clock_t end = clock();
         energy = complete_energy_measurement(h);

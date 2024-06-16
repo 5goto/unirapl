@@ -41,6 +41,10 @@ struct CsvData {
     void write(int a, double b) {
         file << a << "," << b << endl;
     }
+
+    void write(int a, double b, float c) {
+        file << a << "," << b << "," << c << endl;
+    }
     
     ~CsvData() {
         file.close();
