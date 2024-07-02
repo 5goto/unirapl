@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <algorithm>
-#include "../amd/interface.h"
+#include "../src/interface.h"
 
 // Реализация алгоритма жадной упаковки рюкзака
 int greedyKnapsack(const std::vector<int>& weights, const std::vector<int>& values, int capacity) {
@@ -48,23 +48,27 @@ int main() {
     int maxValue = 100;     // Максимальная стоимость предмета
     int maxWeight = 100;    // Максимальный вес предмета
     int capacity = 500;     // Вместимость рюкзака
+    CsvData data("backpack");
+    float freq_1, freq_2;
 
-    for (int i = 0; i < 10; i++) {  
+    for (int i = 0; i < 30; i++) {  
         std::vector<int> weights;
         std::vector<int> values;
         generateData(weights, values, numItems, maxValue, maxWeight);
         double energy;
 
-        numItems *= 2;
-        maxValue *= 2;
-        maxWeight *= 2;
+        numItems *= 1.1;
+        maxValue *= 1.1;
+        maxWeight *= 1.1;
 
         // Запуск алгоритма
         Rapl* h = begin_energy_measurement();
         clock_t start = clock();
+
         int maxValuePacked = greedyKnapsack(weights, values, capacity);
         clock_t end = clock();
         energy = complete_energy_measurement(h);
+        data.write(i + 1, energy);
 
         std::cout << "==============================" << std::endl;
         std::cout << "Итерация " << i + 1 << std::endl;
@@ -74,7 +78,7 @@ int main() {
         std::cout << "Вместимость рюкзака: " << capacity << std::endl;
         std::cout << "Максимальная упакованная ценность: " << maxValuePacked << std::endl;
         std::cout << "Время выполнения (мс): " << (double)(end - start) / CLOCKS_PER_SEC * 1000 << std::endl;
-        std::cout << "Энергия PKG (J): " << energy << std::endl;
+        std::cout << "Энергия(J): " << energy << std::endl;
         std::cout << "==============================" << std::endl;
     }
 

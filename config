@@ -1,0 +1,24 @@
+# Попытаться определить архитекруру автоматически
+auto_detect_architecture:true
+# Указать вручную, если не определиться автоматически, будет взята отсюда [AMD || INTEL]
+architecture:AMD
+# Считываем PKG или CORE [PKG || CORE]
+target:PKG
+# Какое ядро будем читать, если выставлено PKG - то значение будет проигнорировано
+core:1
+
+# AMD MSR 
+AMD_MSR_PWR_UNIT:0xC0010299
+AMD_TIME_UNIT_MASK:0xF0000
+AMD_ENERGY_UNIT_MASK:0x1F00
+AMD_POWER_UNIT_MASK:0xF
+AMD_MSR_PACKAGE_ENERGY:0xC001029B
+AMD_MSR_CORE_ENERGY:0xC001029A
+
+# intel MSR
+INTEL_MSR_PWR_UNIT:0x606
+INTEL_TIME_UNIT_MASK:0xf
+INTEL_ENERGY_UNIT_MASK:0x1f
+INTEL_POWER_UNIT_MASK:0xf
+INTEL_MSR_PACKAGE_ENERGY:0x611
+INTEL_MSR_CORE_ENERGY:0x639
