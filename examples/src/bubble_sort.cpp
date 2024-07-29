@@ -1,45 +1,47 @@
 #include <iostream>
 #include <vector>
-#include "../src/interface.h"
+#include "../../client/UniraplInterface/UniraplInterface.h"
 
-void selectionSort(std::vector<int>& arr) {
+void bubbleSort(std::vector<int>& arr) {
     int n = arr.size();
-    
-    for(int i = 0; i < n - 1; i++) {
-        int min_idx = i;
-        for(int j = i + 1; j < n; j++) {
-            if (arr[j] < arr[min_idx]) {
-                min_idx = j;
+    bool swapped;
+
+    do {
+        swapped = false;
+        for (int i = 1; i < n; i++) {
+            if (arr[i - 1] > arr[i]) {
+                std::swap(arr[i - 1], arr[i]);
+                swapped = true;
             }
         }
-
-        std::swap(arr[i], arr[min_idx]);
-    }
+    } while (swapped);
 }
 
 int main() {
-    int numElements = 500;  // Начальное количество элементов
-    int maxElement = 100;     // Начальный максимальный элемент
+    // Настройка параметров задачи
+    int numElements = 5000;  // Начальное количество элементов
+    int maxElement = 1000;     // Начальный максимальный элемент
 
-    CsvData data("backpack");
+    changeMode("ALL_CORES");
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 18; i++) {
+        // Генерация набора данных
         std::vector<int> arr;
         srand(time(NULL));  // Инициализация генератора случайных чисел
         for (int j = 0; j < numElements; j++) {
             arr.push_back(rand() % maxElement + 1);
         }
 
-        numElements *= 2;
-        maxElement *= 2;
-        double energy;
+        numElements *= 1.1;
+        maxElement *= 1.1;
+        std::string energy;
 
-        Rapl* h = begin_energy_measurement();
+
+        startMeasure();
         clock_t start = clock();
-        selectionSort(arr);
+        bubbleSort(arr);
         clock_t end = clock();
-        energy = complete_energy_measurement(h);
-        data.write(i + 1, energy);
+        energy = endMeasure();
 
         std::cout << "==============================" << std::endl;
         std::cout << "Итерация " << i + 1 << std::endl;
