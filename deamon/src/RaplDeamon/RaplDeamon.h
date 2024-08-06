@@ -39,6 +39,7 @@ private:
     std::unordered_map<RaplMode, Rapl*> raplMap;
 
     Logger& logger = Logger::getInstance();
+
     std::string get_uuid(int);
 
     RaplMode current_mode;

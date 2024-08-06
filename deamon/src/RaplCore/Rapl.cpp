@@ -10,18 +10,15 @@ int Rapl::open_msr(int core) {
 	fd = open(msr_filename, O_RDONLY);
 	if ( fd < 0 ) {
 		if ( errno == ENXIO ) {
-			fprintf(stderr, "rdmsr: No CPU %d\n", core);
-			exit(2);
+			throw NoCPUException();
+
 		} else if ( errno == EIO ) {
-			fprintf(stderr, "rdmsr: CPU %d doesn't support MSRs\n", core);
-			exit(3);
+			throw MSRSupportException();
+      
 		} else {
-			perror("rdmsr:open");
-			fprintf(stderr,"Trying to open %s\n",msr_filename);
-			exit(126);
+			throw OpenMSRException();
 		}
 	}
-
 	return fd;
 }
 
@@ -46,8 +43,7 @@ uint64_t Rapl::read_msr(int fd, unsigned int msr_offset) {
 	uint64_t data;
 
 	if ( pread(fd, &data, sizeof data, msr_offset) != sizeof data ) {
-		perror("Ошибка чтения MSR");
-		exit(126);
+		throw ReadMSRException();
 	}
 	return data;
 }
@@ -116,7 +112,7 @@ void Rapl::detect_cpu_topology() {
         package_ids[package_id] = cpu_id;
       }
     } else {
-      std::cerr << "Ошибка открытия файла: " << filename << std::endl;
+      throw CPUFileException();
     }
   }
   topology.num_packages = num_packages;
