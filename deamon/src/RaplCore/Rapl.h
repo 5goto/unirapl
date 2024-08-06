@@ -17,6 +17,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <vector>
+#include <stdexcept>
 
 constexpr int MAX_PACKAGES = 16;
 
@@ -50,9 +51,9 @@ protected:
 
     int fd;
     double time_unit, energy_unit, power_unit;
-	double time_unit_d, energy_unit_d, power_unit_d;
+	  double time_unit_d, energy_unit_d, power_unit_d;
 
-	uint64_t energy_acc_first, energy_acc_second;
+	  uint64_t energy_acc_first, energy_acc_second;
     uint64_t measure_result;
 
     unsigned current_core = 0;
@@ -60,17 +61,17 @@ protected:
     uint64_t energy_delta(uint64_t before, uint64_t after);
     uint64_t read_msr(int fd, unsigned int msr_offset);
 
-	int open_msr(int core);
-	void detect_cpu_topology();
+	  int open_msr(int core);
+	  void detect_cpu_topology();
 
-	virtual void architecture_init() = 0;
+	  virtual void architecture_init() = 0;
 public:
-	virtual void start_measure() override;
-	virtual void complete_measure() override;
+    virtual void start_measure() override;
+    virtual void complete_measure() override;
 
-	virtual std::vector<double> total_energy() override;
+    virtual std::vector<double> total_energy() override;
 
-	static std::string get_arch_by_cpuinfo();
+    static std::string get_arch_by_cpuinfo();
 };
 
 
@@ -135,3 +136,40 @@ class RaplIntel_ALL_CORES : public RaplIntel {
         void complete_measure() override;
         std::vector<double> total_energy() override;
 };
+
+
+class NoCPUException : public std::exception {
+public:
+  const char* what() const noexcept override {
+    return "No CPU";
+  }
+};
+
+class MSRSupportException : public std::exception {
+public:
+  const char* what() const noexcept override {
+    return "CPU doesn't support MSRs";
+  }
+};
+
+class OpenMSRException : public std::exception {
+public:
+  const char* what() const noexcept override {
+    return "Can't open MSR file";
+  }
+};
+
+class ReadMSRException : public std::exception {
+public:
+  const char* what() const noexcept override {
+    return "Can't read from MSR";
+  }
+};
+
+class CPUFileException : public std::exception {
+public:
+  const char* what() const noexcept override {
+    return "Can't open /sys/devices/system/cpu/cpu";
+  }
+};
+

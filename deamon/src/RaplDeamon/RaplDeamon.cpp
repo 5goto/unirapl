@@ -1,6 +1,6 @@
 #include "RaplDeamon.h"
-#include <unistd.h>
 #include "../RaplCore/Rapl.h"
+#include <unistd.h>
 #include "../utils/vec_str_converter.h"
 
 
@@ -12,7 +12,7 @@ RaplDeamon::~RaplDeamon() {
 void RaplDeamon::run(int port) {
     struct sockaddr_in serverAddress, clientAddress;
     socklen_t clientAddressSize;
-
+    
     logger.log("Starting unirapl...", Level::INFO);
 
     // Создание сокета
@@ -59,6 +59,7 @@ void RaplDeamon::run(int port) {
         std::string uuid = get_uuid(10);
 
         logger.log("New session <" + uuid + ">", Level::INFO);
+        std::cout << "new session!!!!" << std::endl; 
 
         if(service == nullptr) { // если мод не был выбран
             service = raplMap[RaplMode::PKG];
@@ -66,8 +67,8 @@ void RaplDeamon::run(int port) {
             logger.log("<" + uuid + "> Set default mode: PKG", Level::WARN);
         }
 
-        // Обработка запросов
-        while (true) {
+        try {
+            while (true) {
             // Получение запроса от клиента
             char buffer[1024];
             int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -96,8 +97,8 @@ void RaplDeamon::run(int port) {
                 send(clientSocket, response.c_str(), response.length(), 0);
 
                 if(current_mode == RaplMode::ALL_CORES) {
-                    logger.log("<" + uuid + "> All cores: ", Level::INFO);
-                    logger.log("<" + uuid + "> ", result, Level::INFO);
+                    logger.log("<" + uuid + "> All cores: " + response, Level::INFO);
+                    // logger.log("<" + uuid + "> ", result, Level::INFO);
                 } else {
                     logger.log("<" + uuid + "> Measure result: " + response, Level::INFO);
                 }
@@ -131,8 +132,18 @@ void RaplDeamon::run(int port) {
                 send(clientSocket, response.c_str(), response.length(), 0);
 
                 logger.log("<" + uuid + "> Invalid request type", Level::WARN);
+                }
             }
         }
+        catch(const std::exception& e) {
+            logger.log("<" + uuid + "> Rapl error: " + e.what(), Level::ERROR);
+            logger.log("Shutting down RAPl with error", Level::ERROR);
+            exit(1);
+        }
+        
+
+        // Обработка запросов
+        
 
         // Закрытие соединения с клиентом
         close(clientSocket);
@@ -219,12 +230,12 @@ void signal_handler(int sig) {
 
 int becomeDeamon() {
     // Создание дочернего процесса
-    switch (fork()) {    /* Превращение в фоновый процесс */
+    switch (fork()) {    
     case -1: return -1;
     case 0:
     break;
     /* Потомок проходит этот этап... */
-    default: _exit(EXIT_SUCCESS); /* ...а родитель завершается */
+    default: _exit(EXIT_SUCCESS); 
     }
 
     // Отделение от терминала
