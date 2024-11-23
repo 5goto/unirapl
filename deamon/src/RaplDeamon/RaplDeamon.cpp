@@ -76,13 +76,15 @@ void RaplDeamon::run(int port) {
                 break;
             }
             request = std::string(buffer, bytesReceived);
+            request.erase(request.find_last_not_of(" \n\r\t") + 1);
+
             logger.log("<" + uuid + "> Request: " + request , Level::INFO);
 
             // Обработка запроса
             if (request == "start") {
                 service->start_measure();
                 // Отправка ответа клиенту
-                std::string response = "OK";
+                std::string response = "OK\n";
                 logger.log("<" + uuid + "> Starting measure", Level::INFO);
 
                 send(clientSocket, response.c_str(), response.length(), 0);
@@ -128,7 +130,7 @@ void RaplDeamon::run(int port) {
                 logger.log("<" + uuid + "> Change Rapl mode: ALL_CORES", Level::WARN);
             } else {
                 // Неизвестный запрос
-                std::string response = "Invalid request";
+                std::string response = "Invalid request\n";
                 send(clientSocket, response.c_str(), response.length(), 0);
 
                 logger.log("<" + uuid + "> Invalid request type", Level::WARN);

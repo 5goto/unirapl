@@ -17,7 +17,7 @@ RaplSender::RaplSender() {
         std::cerr << "Ошибка преобразования IP-адреса" << std::endl;
     }
 
-    serverAddress.sin_port = htons(8080);
+    serverAddress.sin_port = htons(8000);
 
     if (connect(clientSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == -1) {
         std::cerr << "Ошибка при подключении к серверу" << std::endl;
